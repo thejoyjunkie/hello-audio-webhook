@@ -58,12 +58,29 @@ exports.handler = async (event, context) => {
             console.log('This is a new subscriber from MailerLite');
             // NEW SUBSCRIBER (new functionality)
             
-            // Get subscriber info from MailerLite data
-            const email = data.subscriber?.email || data.email;
-            const firstName = data.subscriber?.fields?.name || data.subscriber?.name || '';
-            const lastName = data.subscriber?.fields?.last_name || data.subscriber?.last_name || '';
+            // Get subscriber info from MailerLite data (handling their event format)
+            let email, firstName, lastName;
+
+            if (data.events && data.events[0] && data.events[0].subscriber) {
+                // MailerLite automation format
+                const subscriber = data.events[0].subscriber;
+                email = subscriber.email;
+                firstName = subscriber.fields?.name || subscriber.name || '';
+                lastName = subscriber.fields?.last_name || subscriber.last_name || '';
+            } else {
+                // Direct format (for episode tracking)
+                email = data.subscriber?.email || data.email;
+                firstName = data.subscriber?.fields?.name || data.subscriber?.name || '';
+                lastName = data.subscriber?.fields?.last_name || data.subscriber?.last_name || '';
+            }
             
             console.log('Processing new subscriber:', { email, firstName, lastName });
+            
+            // Make sure we have an email before proceeding
+            if (!email) {
+                console.error('No email found in data');
+                return { statusCode: 400, body: JSON.stringify({ error: 'No email provided' }) };
+            }
             
             // Step 1: Add to Hello Audio (WITHOUT sending their email)
             console.log('Adding subscriber to Hello Audio...');
