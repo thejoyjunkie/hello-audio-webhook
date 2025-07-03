@@ -1,6 +1,8 @@
-// This is our helper program that connects Hello Audio and MailerLite
+// This is our super helper program that handles everything!
 
 exports.handler = async (event, context) => {
+    console.log('Function called with method:', event.httpMethod);
+    
     // Check if someone sent us information
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: 'Method Not Allowed' };
@@ -9,18 +11,12 @@ exports.handler = async (event, context) => {
     try {
         // Get the information that was sent to us
         const data = JSON.parse(event.body);
-        console.log('Received data from Hello Audio:', data);
+        console.log('Received data:', data);
         
-        const email = data.email;
-        const episode = data.episode;
-        const firstName = data.firstName || '';
-        const lastName = data.lastName || '';
-
-        console.log('Parsed values:', { email, episode, firstName, lastName });
-
-        // Your MailerLite secret password (API key) goes here
+        // Your MailerLite and Hello Audio secrets
         const MAILERLITE_API_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiMTI4OTBlNzdlOWMyMDMwM2VjZmE1N2VlMTMzZTk3NWI0NmZhYTM5NWExMGI5YzEwZTZjNDk1YzFkNjc1Y2E3NTI0NDVjODBmYzdjODVjNTYiLCJpYXQiOjE3NTEwNDg1MTAuNjk3OTg0LCJuYmYiOjE3NTEwNDg1MTAuNjk3OTg3LCJleHAiOjQ5MDY3MjIxMTAuNjkyNzkzLCJzdWIiOiIxNDA5ODQ5Iiwic2NvcGVzIjpbXX0.mAqiGcnwD7RVexE42XGb1sU3X328jetcisu9PSeCUOKRJe_-lEqq4LY9U-Y697mIAOxFj5g6SVuhAGXtvqnS7TuCjb_QtIsiEC_2H5fXkzhVuAHGPQAJ7pQSMS8mPUqAhDF4NP5WJdVK8Gi5rxgky5jqyBaKPIceeEOrCjKBe4JciKqhNbKhqHhKgUqOLEoor_Y1LGnjmYnr2HmvunLsCrAGqyvKewbqTcoaFwKB2ubunijYTFNhX4EIak-jjwWOkLCuJAKoZSedGodSNwOYFw8Jr9dKzpIPbAolYaX2mvL6sg9ZlWBX65AKBDXgjQ92_8wJ4IyT7nQHkODZcjiFgWFWC1BD6_GIOOr6cvXmqBiZNZ6gFGBPy4Pk7ux6nxnNidtDj3c6UR_XfNL1MhC1sU9LHfI1UrzQywyE5MppSNtzrYugwB0NEnYG9cwlrcMfpNp4Y6OuKInBCuyRkDrr9zRchjn3jc6YKfWersa9tnoFHtwlrzpNAi63sSJDCxU3ijTswfdwEXqiiTfvey1ONtAlNYdOHo2yAf5-5fJ6Fk4fKBmke0V4SpT7MJttrNwCF9iyuDnejBBK5Vv7HWdqtQkFWmHn-t-r6ToyuxK6EHmANJrHuBSi3w15xxS0VJVId3gYjvzWiPtE9EbNPXR_nS5n_X3EX0g9GUUb7xjruvI';
-
+        const HELLO_AUDIO_WEBHOOK = 'https://podcasts.helloaudio.fm/webhook?apikey=5wv9i9CLF9TnMHGjAs0iv5F7vefUTz&feedId=0537459d-b904-4461-a1cf-17e5c0e7dbf0';
+        
         // Group ID mapping
         const groupIds = {
             main: '157848137633891722', // BOD FREE Pod Series
@@ -32,33 +28,15 @@ exports.handler = async (event, context) => {
             episode6: '158934583901946885'  // BOB Episode 6 Completed
         };
 
-        // Add person to MailerLite main group
-        console.log('Attempting to add to main group: BOD FREE Pod Series');
-        const response = await fetch('https://connect.mailerlite.com/api/subscribers', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${MAILERLITE_API_KEY}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                email: email,
-                fields: {
-                    name: firstName,
-                    last_name: lastName
-                },
-                groups: [groupIds.main] // Using group ID instead of name
-            })
-        });
-
-        console.log('MailerLite main group response status:', response.status);
-        const responseText = await response.text();
-        console.log('MailerLite main group response:', responseText);
-
-        // If someone completed an episode, add them to that episode's group
-        if (episode) {
+        // Check if this is episode tracking OR new subscriber
+        if (data.episode) {
+            console.log('This is episode tracking for episode:', data.episode);
+            // EPISODE TRACKING (existing functionality)
+            const email = data.email;
+            const episode = data.episode;
+            
             const episodeGroupId = groupIds[`episode${episode}`];
-            console.log('Attempting to add to episode group ID:', episodeGroupId);
+            console.log('Adding to episode group:', episodeGroupId);
             
             const groupResponse = await fetch('https://connect.mailerlite.com/api/subscribers', {
                 method: 'POST',
@@ -69,25 +47,84 @@ exports.handler = async (event, context) => {
                 },
                 body: JSON.stringify({
                     email: email,
-                    groups: [episodeGroupId] // Using group ID instead of name
+                    groups: [episodeGroupId]
                 })
             });
 
-            console.log('MailerLite episode group response status:', groupResponse.status);
-            const groupResponseText = await groupResponse.text();
-            console.log('MailerLite episode group response:', groupResponseText);
+            console.log('Episode group response status:', groupResponse.status);
+            return { statusCode: 200, body: JSON.stringify({ message: 'Episode tracking success!' }) };
+            
+        } else {
+            console.log('This is a new subscriber from MailerLite');
+            // NEW SUBSCRIBER (new functionality)
+            
+            // Get subscriber info from MailerLite data
+            const email = data.subscriber?.email || data.email;
+            const firstName = data.subscriber?.fields?.name || data.subscriber?.name || '';
+            const lastName = data.subscriber?.fields?.last_name || data.subscriber?.last_name || '';
+            
+            console.log('Processing new subscriber:', { email, firstName, lastName });
+            
+            // Step 1: Add to Hello Audio (WITHOUT sending their email)
+            console.log('Adding subscriber to Hello Audio...');
+            const helloAudioResponse = await fetch(HELLO_AUDIO_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: email,
+                    firstName: firstName,
+                    lastName: lastName,
+                    status: "active",
+                    sendEmail: false  // We'll send our own branded email!
+                })
+            });
+            
+            console.log('Hello Audio response status:', helloAudioResponse.status);
+            const helloAudioResult = await helloAudioResponse.text();
+            console.log('Hello Audio response:', helloAudioResult);
+            
+            // Step 2: Get their unique podcast link from Hello Audio
+            // (For now, we'll create a generic personal link - we can enhance this later)
+            const personalPodcastLink = `https://podcasts.helloaudio.fm/subscribe/0537459d-b904-4461-a1cf-17e5c0e7dbf0/personal-${email.replace('@', '-').replace('.', '-')}`;
+            
+            // Step 3: Update MailerLite subscriber with their podcast link
+            console.log('Updating MailerLite with podcast link...');
+            const mailerLiteResponse = await fetch('https://connect.mailerlite.com/api/subscribers', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${MAILERLITE_API_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email,
+                    fields: {
+                        name: firstName,
+                        last_name: lastName,
+                        podcast_link: personalPodcastLink  // Custom field for their link!
+                    },
+                    groups: [groupIds.main] // Add to main podcast group
+                })
+            });
+            
+            console.log('MailerLite response status:', mailerLiteResponse.status);
+            const mailerLiteResult = await mailerLiteResponse.text();
+            console.log('MailerLite response:', mailerLiteResult);
+            
+            return { 
+                statusCode: 200, 
+                body: JSON.stringify({ 
+                    message: 'New subscriber processed successfully!',
+                    podcast_link: personalPodcastLink
+                }) 
+            };
         }
-
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ message: 'Success!' })
-        };
 
     } catch (error) {
         console.error('Error:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: 'Something went wrong' })
+            body: JSON.stringify({ error: 'Something went wrong: ' + error.message })
         };
     }
 };
