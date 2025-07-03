@@ -100,9 +100,16 @@ exports.handler = async (event, context) => {
             const helloAudioResult = await helloAudioResponse.text();
             console.log('Hello Audio response:', helloAudioResult);
             
-            // Step 2: Get their unique podcast link from Hello Audio
-            // (For now, we'll create a generic personal link - we can enhance this later)
-            const personalPodcastLink = `https://podcasts.helloaudio.fm/subscribe/0537459d-b904-4461-a1cf-17e5c0e7dbf0/personal-${email.replace('@', '-').replace('.', '-')}`;
+            // Step 2: Get the real personal link from Hello Audio's response
+            let personalPodcastLink = '';
+            if (helloAudioResponse.status === 200) {
+                const helloAudioData = JSON.parse(helloAudioResult);
+                personalPodcastLink = helloAudioData.subscribePageLink;
+                console.log('Got real personal link:', personalPodcastLink);
+            } else {
+                personalPodcastLink = 'https://podcasts.helloaudio.fm/subscribe/0537459d-b904-4461-a1cf-17e5c0e7dbf0';
+                console.log('Using fallback link');
+            }
             
             // Step 3: Update MailerLite subscriber with their podcast link
             console.log('Updating MailerLite with podcast link...');
