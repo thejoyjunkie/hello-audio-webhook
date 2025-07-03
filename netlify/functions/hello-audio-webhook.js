@@ -21,6 +21,17 @@ exports.handler = async (event, context) => {
         // Your MailerLite secret password (API key) goes here
         const MAILERLITE_API_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiMTI4OTBlNzdlOWMyMDMwM2VjZmE1N2VlMTMzZTk3NWI0NmZhYTM5NWExMGI5YzEwZTZjNDk1YzFkNjc1Y2E3NTI0NDVjODBmYzdjODVjNTYiLCJpYXQiOjE3NTEwNDg1MTAuNjk3OTg0LCJuYmYiOjE3NTEwNDg1MTAuNjk3OTg3LCJleHAiOjQ5MDY3MjIxMTAuNjkyNzkzLCJzdWIiOiIxNDA5ODQ5Iiwic2NvcGVzIjpbXX0.mAqiGcnwD7RVexE42XGb1sU3X328jetcisu9PSeCUOKRJe_-lEqq4LY9U-Y697mIAOxFj5g6SVuhAGXtvqnS7TuCjb_QtIsiEC_2H5fXkzhVuAHGPQAJ7pQSMS8mPUqAhDF4NP5WJdVK8Gi5rxgky5jqyBaKPIceeEOrCjKBe4JciKqhNbKhqHhKgUqOLEoor_Y1LGnjmYnr2HmvunLsCrAGqyvKewbqTcoaFwKB2ubunijYTFNhX4EIak-jjwWOkLCuJAKoZSedGodSNwOYFw8Jr9dKzpIPbAolYaX2mvL6sg9ZlWBX65AKBDXgjQ92_8wJ4IyT7nQHkODZcjiFgWFWC1BD6_GIOOr6cvXmqBiZNZ6gFGBPy4Pk7ux6nxnNidtDj3c6UR_XfNL1MhC1sU9LHfI1UrzQywyE5MppSNtzrYugwB0NEnYG9cwlrcMfpNp4Y6OuKInBCuyRkDrr9zRchjn3jc6YKfWersa9tnoFHtwlrzpNAi63sSJDCxU3ijTswfdwEXqiiTfvey1ONtAlNYdOHo2yAf5-5fJ6Fk4fKBmke0V4SpT7MJttrNwCF9iyuDnejBBK5Vv7HWdqtQkFWmHn-t-r6ToyuxK6EHmANJrHuBSi3w15xxS0VJVId3gYjvzWiPtE9EbNPXR_nS5n_X3EX0g9GUUb7xjruvI';
 
+        // Group ID mapping
+        const groupIds = {
+            main: '157848137633891722', // BOD FREE Pod Series
+            episode1: '158934537828566654', // BOB Episode 1 Completed
+            episode2: '158934554263946635', // BOB Episode 2 Completed
+            episode3: '158934565297063232', // BOB Episode 3 Completed
+            episode4: '158934571095688230', // BOB Episode 4 Completed
+            episode5: '158934576921577321', // BOB Episode 5 Completed
+            episode6: '158934583901946885'  // BOB Episode 6 Completed
+        };
+
         // Add person to MailerLite main group
         console.log('Attempting to add to main group: BOD FREE Pod Series');
         const response = await fetch('https://connect.mailerlite.com/api/subscribers', {
@@ -36,7 +47,7 @@ exports.handler = async (event, context) => {
                     name: firstName,
                     last_name: lastName
                 },
-                groups: ['BOD FREE Pod Series'] // Your main group name
+                groups: [groupIds.main] // Using group ID instead of name
             })
         });
 
@@ -46,8 +57,8 @@ exports.handler = async (event, context) => {
 
         // If someone completed an episode, add them to that episode's group
         if (episode) {
-            const episodeGroup = `BOB Episode ${episode} Completed`;
-            console.log('Attempting to add to episode group:', episodeGroup);
+            const episodeGroupId = groupIds[`episode${episode}`];
+            console.log('Attempting to add to episode group ID:', episodeGroupId);
             
             const groupResponse = await fetch('https://connect.mailerlite.com/api/subscribers', {
                 method: 'POST',
@@ -58,7 +69,7 @@ exports.handler = async (event, context) => {
                 },
                 body: JSON.stringify({
                     email: email,
-                    groups: [episodeGroup]
+                    groups: [episodeGroupId] // Using group ID instead of name
                 })
             });
 
